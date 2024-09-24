@@ -31,8 +31,7 @@ const io = new Server(server, {
 const CHAT_BOT = 'ChatBot';
 
 io.on('connection', async (socket) => {
-    //console.log(`User connected ${socket.id}`);
-    //console.log(io.sockets);
+
     socket.on('join_room', async (data) => {
         if (data) {
             const { username, room } = data;
@@ -74,8 +73,6 @@ io.on('connection', async (socket) => {
         }
 
     });
-
-
     socket.on('leave_room', async (data) => {
         if (data) {
             let { room, username } = data;
@@ -93,6 +90,15 @@ io.on('connection', async (socket) => {
                 __createdtime__: __createdtime__
             });
         }
+    })
+    socket.on('send_message', async (data) => {
+        const { username, room, message, __createdtime__ } = data;
+
+        io.to(room).emit('send_user_message', {
+            message: message,
+            username: username,
+            __createdtime__: __createdtime__
+        })
     })
 })
 

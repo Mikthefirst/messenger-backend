@@ -17,11 +17,22 @@ class userDBOperations {
     async addUser(id, username, room) {
         try {
             const res = await db.query('INSERT INTO users VALUES ($1,$2,$3)', [id, username, room]);
-            console.log(res);
+            //console.log(res);
         }
         catch (err) {
             console.log('inserting error occured ');
             console.error(err);
+        }
+    }
+
+    async deleteUserFromRoom(room, username) {
+        try {
+            const res = await db.query('DELETE FROM users WHERE username = $1 AND room = $2', [username, room]);
+            console.log('user was deleted from room');
+        }
+        catch (err) {
+            console.error(err)
+            console.log('Deleting wasnt successfull');
         }
     }
 
@@ -40,8 +51,8 @@ class userDBOperations {
     }
 }
 
-let user = new userDBOperations();
+//let user = new userDBOperations();
 //user.addUser('1', 'Allah', 'Java');
-user.getUsersByRoom('Java');
+//user.getUsersByRoom('Java');
 
 module.exports = new userDBOperations();

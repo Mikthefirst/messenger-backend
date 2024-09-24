@@ -29,48 +29,71 @@ const io = new Server(server, {
 });
 
 const CHAT_BOT = 'ChatBot';
-let Users = [];
 
-io.on('connection', (socket) => {
-    console.log(`User connected ${socket.id}`);
-
-    socket.on('join_room', (data) => {
+io.on('connection', async (socket) => {
+    //console.log(`User connected ${socket.id}`);
+    //console.log(io.sockets);
+    socket.on('join_room', async (data) => {
         if (data) {
             const { username, room } = data;
             const __createdtime__ = Date.now();
 
-            Users.push({ "id": socket.id, "username": username, "room": room });
-
             socket.join(room);
-            //пользователю
-            socket.emit('receive_message', {
-                message: `Welcome ${username}`,
-                username: CHAT_BOT,
-                __createdtime__,
-            });
-            //пользователям
-            const chatRoomUsers = Users.filter((value) => value.room === room);
-            socket.to(room).emit('chatroom_users', chatRoomUsers);
-            socket.emit(chatRoomUsers);
-            //сообщение о присоединении нового юзера.
-            socket.to(room).emit('receive_message', {
-                message: `${username} has joined the chat room`,
-                username: CHAT_BOT,
-                __createdtime__,
-            });
+            userDB.addUser(socket.id, username, room);
 
-            socket.on('send_message', (data) => {
-                const { message, username, room, __createdtime__ } = data;
-                console.log('send_message:   ', data);
-                io.in(room).emit('receive_message', data);
-            })
+
+            //Сообщение о присоединение пользователя
+            //Обновление списка пользователей
+            //Покидание комнаты пользователем
+            {
+                //пользователю
+                socket.emit('send_user_message', {
+                    message: `Welcome ${username}`,
+                    username: CHAT_BOT,
+                    __createdtime__,
+                });
+
+                //пользователям
+                const chatRoomUsers = await userDB.getUsersByRoom(room);
+                console.log('Пользователи комнаты:', chatRoomUsers);
+
+                //сообщение о присоединении нового юзера.
+                console.log('Новый пользователь присоединился');//всем, кроме него
+                socket.to(room).emit('send_user_message', {
+                    message: `New user joined ${username}`,
+                    username: CHAT_BOT,
+                    __createdtime__,
+                });
+
+                //лист юзеров отправляется всем в комнате
+                io.to(room).emit('user_list', chatRoomUsers);
+
+
+            }
 
         }
-        socket.on('message', (socket) => {
-            socket
-        })
+
     });
 
+
+    socket.on('leave_room', async (data) => {
+        if (data) {
+            let { room, username } = data;
+            const __createdtime__ = Date.now();
+
+            socket.leave(room);
+            await userDB.deleteUserFromRoom(room, username);
+
+            const chatRoomUsers = await userDB.getUsersByRoom(room);
+            socket.to(room).emit('user_list', chatRoomUsers);
+
+            socket.to(room).emit('send_user_message', {
+                message: `User ${username} have leaved the room(`,
+                username: CHAT_BOT,
+                __createdtime__: __createdtime__
+            });
+        }
+    })
 })
 
 server.listen(port, () => {

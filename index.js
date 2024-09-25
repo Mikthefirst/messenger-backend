@@ -45,9 +45,15 @@ io.on('connection', async (socket) => {
             //Обновление списка пользователей
             //Покидание комнаты пользователем
             {
+                let messages = await messageDB.getLastMessages(room, 10);
                 //пользователю
+
+                if (messages) {
+                    console.log(messages);
+                    socket.emit('send_user_message', messages);
+                }
                 socket.emit('send_user_message', {
-                    message: `Welcome ${username}`,
+                    data: `Welcome ${username}`,
                     username: CHAT_BOT,
                     __createdtime__,
                 });
@@ -59,7 +65,7 @@ io.on('connection', async (socket) => {
                 //сообщение о присоединении нового юзера.
                 console.log('Новый пользователь присоединился');//всем, кроме него
                 socket.to(room).emit('send_user_message', {
-                    message: `New user joined ${username}`,
+                    data: `New user joined ${username}`,
                     username: CHAT_BOT,
                     __createdtime__,
                 });
@@ -85,7 +91,7 @@ io.on('connection', async (socket) => {
             socket.to(room).emit('user_list', chatRoomUsers);
 
             socket.to(room).emit('send_user_message', {
-                message: `User ${username} have leaved the room(`,
+                data: `User ${username} have leaved the room(`,
                 username: CHAT_BOT,
                 __createdtime__: __createdtime__
             });
@@ -93,9 +99,10 @@ io.on('connection', async (socket) => {
     })
     socket.on('send_message', async (data) => {
         const { username, room, message, __createdtime__ } = data;
+        await messageDB.addMessage(username, message, room,);//нужно ещё будет указать время, но лень пака
 
         io.to(room).emit('send_user_message', {
-            message: message,
+            data: message,
             username: username,
             __createdtime__: __createdtime__
         })

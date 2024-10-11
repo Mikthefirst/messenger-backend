@@ -10,6 +10,7 @@ class messageDBOperations {
                 res = await db.query('INSERT INTO messages (username, data, room, __createdtime__)  VALUES ($1,$2,$3,$4)', [username, data, room, time]);
             }
             else {
+                console.log(username, data, room);
                 res = await db.query('INSERT INTO messages (username, data, room, __createdtime__)  VALUES ($1,$2,$3,$4)', [username, data, room, 'NOW()']);
             }
             //console.log(res);

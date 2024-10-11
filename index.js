@@ -1,6 +1,9 @@
 require('dotenv').config();
 const express = require('express'),
     cors = require('cors'),
+    cookieParser = require('cookie-parser'),
+    socketIoJwt = require('socketio-jwt'),
+    jwt = require('jsonwebtoken'),
     app = express(),
     { Server } = require('socket.io'),
     http = require('http');
@@ -10,22 +13,29 @@ const userDB = require('./DB/User-operations');
 
 //vars
 
+const authServerPort = process.env.PORT;
+const port = process.env.SOCKET_PORT;
+const secret = process.env.SECRET;
 
-const port = process.env.PORT;
-//
+const corsConfig = {
+    origin: 'http://localhost:3000',
+    methods: ['GET', 'POST'],
+    credentials: true
+};
+// 
 //Middleware
 //
-app.use(cors());
-//app.options('*', cors());
-app.use(express.json());
-
-
 const server = http.createServer(app);
 const io = new Server(server, {
-    cors: {
-        origin: 'http://localhost:3000',
-        methods: ['GET', 'POST'],
-    },
+    cors: corsConfig,
+});
+
+app.use(cors(corsConfig));
+app.use(express.json());
+app.use(cookieParser());
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Credentials', true);
+    next();
 });
 
 const CHAT_BOT = 'ChatBot';
@@ -109,7 +119,27 @@ io.on('connection', async (socket) => {
     })
 })
 
-server.listen(port, () => {
-    console.log(`server listening on ${port}(socket.io)`);
+app.post('/app/getCookie', (req, res) => {
+    console.log('cookie');
+    const { username, room } = req.body;
+    console.log('username:', username, 'room:', room);
+    if (username && room) {
+        console.log('writing cookie...');
+        res.cookie('username', `${username}`);
+        res.cookie('room', `${room}`);
+        res.cookie('token', `${jwt.sign({ username, room }, secret)}`);
+        res.status(200).send('Cookies set');
+    }
+    else {
+        res.status(400).send('Error occured sending cookie')
+    }
 })
 
+
+server.listen(port, () => {
+    console.log(`socket server listening on ${port}(socket.io)`);
+})
+
+app.listen(authServerPort, () => {
+    console.log('auth server listening on ', authServerPort);
+})

@@ -8,6 +8,7 @@ const express = require('express'),
     { Server } = require('socket.io'),
     http = require('http');
 
+const { console } = require('inspector');
 const messageDB = require('./DB/Message-operations');
 const userDB = require('./DB/User-operations');
 
@@ -44,47 +45,55 @@ io.on('connection', async (socket) => {
 
     socket.on('join_room', async (data) => {
         if (data) {
-            const { username, room } = data;
+            const token = await jwt.verify(data.token, secret);
+            const { username, room, password } = data;
             const __createdtime__ = Date.now();
+            console.log('join_room data:', data);
+            console.log('token_data:', token);
+            const currentTime = Math.floor(__createdtime__ / 1000);
+            if (token.username === username && token.room === room && token.password === password && currentTime < (token.iat + 3600)) {
 
-            socket.join(room);
-            userDB.addUser(socket.id, username, room);
+                socket.join(room);
+                userDB.addUser(socket.id, username, room, password);
+
+                //Сообщение о присоединение пользователя
+                //Обновление списка пользователей
+                //Покидание комнаты пользователем
+                console.log('messages')
+                {
+                    let messages = await messageDB.getLastMessages(room, 10);
+                    //пользователю
+
+                    if (messages) {
+                        //console.log(messages);
+                        socket.emit('send_user_message', messages);
+                    }
+                    socket.emit('send_user_message', {
+                        data: `Welcome ${username}`,
+                        username: CHAT_BOT,
+                        __createdtime__,
+                    });
+
+                    //пользователям
+                    const chatRoomUsers = await userDB.getUsersByRoom(room);
+                    //console.log('Пользователи комнаты:', chatRoomUsers);
+
+                    //сообщение о присоединении нового юзера.
+                    console.log('Новый пользователь присоединился');//всем, кроме него
+                    socket.to(room).emit('send_user_message', {
+                        data: `New user joined ${username}`,
+                        username: CHAT_BOT,
+                        __createdtime__,
+                    });
+
+                    //лист юзеров отправляется всем в комнате
+                    io.to(room).emit('user_list', chatRoomUsers);
 
 
-            //Сообщение о присоединение пользователя
-            //Обновление списка пользователей
-            //Покидание комнаты пользователем
-            {
-                let messages = await messageDB.getLastMessages(room, 10);
-                //пользователю
-
-                if (messages) {
-                    console.log(messages);
-                    socket.emit('send_user_message', messages);
                 }
-                socket.emit('send_user_message', {
-                    data: `Welcome ${username}`,
-                    username: CHAT_BOT,
-                    __createdtime__,
-                });
-
-                //пользователям
-                const chatRoomUsers = await userDB.getUsersByRoom(room);
-                console.log('Пользователи комнаты:', chatRoomUsers);
-
-                //сообщение о присоединении нового юзера.
-                console.log('Новый пользователь присоединился');//всем, кроме него
-                socket.to(room).emit('send_user_message', {
-                    data: `New user joined ${username}`,
-                    username: CHAT_BOT,
-                    __createdtime__,
-                });
-
-                //лист юзеров отправляется всем в комнате
-                io.to(room).emit('user_list', chatRoomUsers);
-
-
             }
+
+
 
         }
 
@@ -121,13 +130,14 @@ io.on('connection', async (socket) => {
 
 app.post('/app/getCookie', (req, res) => {
     console.log('cookie');
-    const { username, room } = req.body;
+    const { username, room, password } = req.body;
     console.log('username:', username, 'room:', room);
     if (username && room) {
         console.log('writing cookie...');
         res.cookie('username', `${username}`);
         res.cookie('room', `${room}`);
-        res.cookie('token', `${jwt.sign({ username, room }, secret)}`);
+        res.cookie('password', `${password}`);
+        res.cookie('token', `${jwt.sign({ username, room, password }, secret)}`);
         res.status(200).send('Cookies set');
     }
     else {

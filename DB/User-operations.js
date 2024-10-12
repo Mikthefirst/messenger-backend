@@ -13,10 +13,12 @@ const db = new Pool({
 
 class userDBOperations {
 
-    //addUser('vbhsdaj', 'Mik', 'Java');
-    async addUser(id, username, room) {
+    //addUser('vbhsdaj', 'Mik', 'Java', '1111');
+    async addUser(id, username, room, password) {
         try {
-            const res = await db.query('INSERT INTO users VALUES ($1,$2,$3)', [id, username, room]);
+            const userCheck = await db.query('Select * from users where username = $1 AND password = $2', [username, password]);
+            if (!userCheck.rowCount)
+                await db.query('INSERT INTO users VALUES ($1,$2,$3,$4)', [id, username, room, password]);
             //console.log(res);
         }
         catch (err) {
@@ -41,7 +43,7 @@ class userDBOperations {
         try {
             const res = await db.query('SELECT username FROM users WHERE room = $1 ORDER BY id desc', [room])
             if (res.rowCount) {
-                console.log(res.rows);
+                //console.log(res.rows);
                 return res.rows;
             }
         } catch (err) {
@@ -52,7 +54,7 @@ class userDBOperations {
 }
 
 //let user = new userDBOperations();
-//user.addUser('1', 'Allah', 'Java');
+//user.addUser('1', 'Allah', 'Java', '1111');
 //user.getUsersByRoom('Java');
 
 module.exports = new userDBOperations();

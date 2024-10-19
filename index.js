@@ -6,12 +6,15 @@ const express = require('express'),
     jwt = require('jsonwebtoken'),
     app = express(),
     { Server } = require('socket.io'),
-    http = require('http');
+    http = require('http'),
+    path = require('node:path');
 
 const { console } = require('inspector');
 const messageDB = require('./DB/Message-operations');
 const userDB = require('./DB/User-operations');
 
+console.error(' Eroro Initializing servers...');
+console.log('aaa');
 //vars
 
 const authServerPort = process.env.PORT;
@@ -145,7 +148,20 @@ app.post('/app/getCookie', (req, res) => {
     }
 })
 
+app.post('/app/setImage/', (req, res) => {
 
+})
+app.get('/app/getImage', async (req, res) => {
+
+    const { username, password } = req.query;
+    const imagePath = await userDB.GetUserProfileImage(username, password);
+    console.log('/app/getImage');
+    console.log('image::', imagePath);
+    //const image = path.join(__dirname, `/userImages/${imagePath}`);
+    //res.sendFile(image)
+})
+console.log('Initializing servers...');
+console.log('aaa');
 server.listen(port, () => {
     console.log(`socket server listening on ${port}(socket.io)`);
 })

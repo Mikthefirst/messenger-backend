@@ -9,12 +9,9 @@ const express = require('express'),
     http = require('http'),
     path = require('node:path');
 
-const { console } = require('inspector');
 const messageDB = require('./DB/Message-operations');
 const userDB = require('./DB/User-operations');
 
-console.error(' Eroro Initializing servers...');
-console.log('aaa');
 //vars
 
 const authServerPort = process.env.PORT;
@@ -154,14 +151,16 @@ app.post('/app/setImage/', (req, res) => {
 app.get('/app/getImage', async (req, res) => {
 
     const { username, password } = req.query;
-    const imagePath = await userDB.GetUserProfileImage(username, password);
+    const imagePath = (await userDB.GetUserProfileImage(username, password)).image;
     console.log('/app/getImage');
+    console.log('username:', username, '; password: ', password)
     console.log('image::', imagePath);
-    //const image = path.join(__dirname, `/userImages/${imagePath}`);
-    //res.sendFile(image)
+    const image = path.join(__dirname, `/userImages/${imagePath}`);
+    res.sendFile(image)
 })
-console.log('Initializing servers...');
-console.log('aaa');
+
+
+//servers listening
 server.listen(port, () => {
     console.log(`socket server listening on ${port}(socket.io)`);
 })

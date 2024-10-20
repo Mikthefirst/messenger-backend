@@ -1,5 +1,5 @@
-//const db = require('./dbOption');
-require('dotenv').config();
+const db = require('./dbOption');
+/*require('dotenv').config();
 const Pool = require('pg').Pool;
 
 const db = new Pool({
@@ -8,7 +8,7 @@ const db = new Pool({
     host: 'localhost',
     port: 5432,
     database: 'messengerDB'
-});
+});*/
 
 
 class userDBOperations {

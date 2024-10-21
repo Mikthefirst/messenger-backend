@@ -7,10 +7,12 @@ const express = require('express'),
     app = express(),
     { Server } = require('socket.io'),
     http = require('http'),
-    path = require('node:path');
+    path = require('node:path'),
+    multer = require('multer');
 
 const messageDB = require('./DB/Message-operations');
 const userDB = require('./DB/User-operations');
+
 
 //vars
 
@@ -23,6 +25,17 @@ const corsConfig = {
     methods: ['GET', 'POST'],
     credentials: true
 };
+
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'userImages/');
+    },
+    filename: function (req, file, cb) {
+        cb(null, file.originalname);
+    }
+});
+
+const upload = multer({ storage: storage });
 // 
 //Middleware
 //
@@ -145,9 +158,48 @@ app.post('/app/getCookie', (req, res) => {
     }
 })
 
-app.post('/app/setImage/', (req, res) => {
+const fields = [
+    { name: 'avatar', maxCount: 3 },
+];
 
+app.post('/app/setImage/', upload.fields(fields), (req, res) => {
+    console.log('/app/setImage POST');
+    console.log('file:', req.files);
+    const imageNames = req.files.length === 1 ? req.files.avatar[0].originalname : [];
+    if (req.files.avatar) {
+        req.files.avatar.forEach((el, ind, arr) => {
+            if (el.mimetype === 'image/jpeg' || el.mimetype === 'image/png' || el.mimetype === 'image/jpg');
+            else { arr.splice(ind, 1) }
+            imageNames.push(arr.originalname);
+        })
+    }
+    /*
+     avatar: [
+    {
+      fieldname: 'avatar',
+      originalname: 'white_elem.jpg',
+      encoding: '7bit',
+      mimetype: 'image/jpeg',
+      destination: 'userImages/',
+      filename: 'c6454c1ab555a593635377c7ef8c3008',
+      path: 'userImages\\c6454c1ab555a593635377c7ef8c3008',
+      size: 233
+    }
+  ] 
+    */
+    const { username, password } = req.query;
+    if (Array.isArray(imageNames)) {
+        //Add table for images
+        //userDB.ChangeUserProfileImage(username, password, imageNames);
+    }
+    else {
+        userDB.ChangeUserProfileImage(username, password, imageNames);
+    }
+    console.log('username:', username, '; password: ', password)
+    res.send('Sending file passed correctly');
 })
+
+
 app.get('/app/getImage', async (req, res) => {
 
     const { username, password } = req.query;

@@ -12,7 +12,7 @@ const express = require('express'),
 
 const messageDB = require('./DB/Message-operations');
 const userDB = require('./DB/User-operations');
-
+const RoomDB = require('./DB/Room-operations');
 
 //vars
 
@@ -59,15 +59,17 @@ io.on('connection', async (socket) => {
     socket.on('join_room', async (data) => {
         if (data) {
             const token = await jwt.verify(data.token, secret);
-            const { username, room, password } = data;
+            const nickname = decodeURIComponent(data.nickname);
+            const username = decodeURIComponent(data.username);
+
             const __createdtime__ = Date.now();
             console.log('join_room data:', data);
             console.log('token_data:', token);
             const currentTime = Math.floor(__createdtime__ / 1000);
-            if (token.username === username && token.room === room && token.password === password && currentTime < (token.iat + 3600)) {
+            if (token.nickname === nickname && token.username === username && currentTime < (token.iat + 3600)) {
 
+                //В руму можно join только если она есть
                 socket.join(room);
-                userDB.addUser(socket.id, username, room, password);
 
                 //Сообщение о присоединение пользователя
                 //Обновление списка пользователей
@@ -142,19 +144,31 @@ io.on('connection', async (socket) => {
 })
 
 app.post('/app/getCookie', (req, res) => {
-    console.log('cookie');
-    const { username, room, password } = req.body;
-    console.log('username:', username, 'room:', room);
-    if (username && room) {
+
+    const { username, password, nickname } = req.body;
+    console.log('username:', username, '\tpassword:', password, '\tnickname:', nickname);
+
+    const validateNickname = (nickname) => {
+        const regex = /^@[a-zA-Z_0-9]+$/;
+        return regex.test(nickname);
+    };
+
+    let resDB;
+
+    if (username && password && nickname && validateNickname(nickname)) {
         console.log('writing cookie...');
+
+        resDB = await = userDB.addUser(username, nickname, password);
+        if (typeof resDB === 'string')
+            res.status(400).send(resDB);
+
+        res.cookie('nickname', `${nickname}`);
         res.cookie('username', `${username}`);
-        res.cookie('room', `${room}`);
-        res.cookie('password', `${password}`);
-        res.cookie('token', `${jwt.sign({ username, room, password }, secret)}`);
+        res.cookie('token', `${jwt.sign({ username, nickname }, secret)}`);
         res.status(200).send('Cookies set');
     }
     else {
-        res.status(400).send('Error occured sending cookie')
+        res.status(400).send('Occured error sending cookie');
     }
 })
 
@@ -211,6 +225,23 @@ app.get('/app/getImage', async (req, res) => {
     res.sendFile(image)
 })
 
+app.get('/app/rooms/GetRoomsNickname', async (req, res) => {
+    console.log(req.cookies);
+    const { nickname, token } = req.cookies;
+    console.log('nickname:', nickname);
+    const decodedToken = await jwt.decode(token);
+
+    if (nickname === decodedToken.nickname) {
+        const RoomsID = await RoomDB.getRoomsIdByUser(nickname, undefined, 10);
+        const Rooms = await RoomDB.GetRoomsByIds(RoomsID);
+        if (Rooms) {
+            console.log('Rooms:\n', Rooms);
+            res.send(JSON.stringify(Rooms));
+            return;
+        }
+    }
+    res.status(400).send('Error requesting rooms');
+})
 
 //servers listening
 server.listen(port, () => {

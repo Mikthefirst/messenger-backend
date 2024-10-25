@@ -13,12 +13,20 @@ const db = new Pool({
 
 class userDBOperations {
 
-    //addUser('vbhsdaj', 'Mik', 'Java', '1111');
-    async addUser(id, username, room, password) {
+    //addUser( 'Mik', '1111', '@funnyBunny');
+    async addUser(username, nickname, password) {
         try {
-            const userCheck = await db.query('Select * from users where username = $1 AND password = $2', [username, password]);
-            if (!userCheck.rowCount)
-                await db.query('INSERT INTO users VALUES ($1,$2,$3,$4)', [id, username, room, password]);
+            let MaxId;
+            const userCheck = await db.query('Select id from users where nickname = $1', [nickname]);
+            if (!userCheck.rowCount) {
+                MaxId = (await db.query('Select Max(id) from users')).rows[0].max + 1;
+                await db.query('INSERT INTO users VALUES ($1,$2,$3,$4)', [MaxId, username, password, nickname]);
+            }
+            else {
+                return 'That nickname have already been occupied.((';
+            }
+            console.log('MaxId: ', MaxId);
+            return MaxId;
             //console.log(res);
         }
         catch (err) {

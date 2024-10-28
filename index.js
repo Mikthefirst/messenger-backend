@@ -58,10 +58,11 @@ io.on('connection', async (socket) => {
 
     socket.on('join_room', async (data) => {
         if (data) {
+            console.log(data);
             const token = await jwt.verify(data.token, secret);
             const nickname = decodeURIComponent(data.nickname);
             const username = decodeURIComponent(data.username);
-
+            const room = decodeURIComponent(data.room);
             const __createdtime__ = Date.now();
             console.log('join_room data:', data);
             console.log('token_data:', token);
@@ -235,7 +236,6 @@ app.get('/app/rooms/GetRoomsNickname', async (req, res) => {
         const RoomsID = await RoomDB.getRoomsIdByUser(nickname, undefined, 10);
         const Rooms = await RoomDB.GetRoomsByIds(RoomsID);
         if (Rooms) {
-            console.log('Rooms:\n', Rooms);
             res.send(JSON.stringify(Rooms));
             return;
         }

@@ -144,10 +144,9 @@ io.on('connection', async (socket) => {
     })
 })
 
-app.post('/app/getCookie', (req, res) => {
+app.post('/app/getCookie', async (req, res) => {
 
     const { username, password, nickname } = req.body;
-    console.log('username:', username, '\tpassword:', password, '\tnickname:', nickname);
 
     const validateNickname = (nickname) => {
         const regex = /^@[a-zA-Z_0-9]+$/;
@@ -157,16 +156,23 @@ app.post('/app/getCookie', (req, res) => {
     let resDB;
 
     if (username && password && nickname && validateNickname(nickname)) {
-        console.log('writing cookie...');
 
-        resDB = await = userDB.addUser(username, nickname, password);
-        if (typeof resDB === 'string')
+        resDB = await userDB.addUser(username, nickname, password);
+        console.log('resDB:', resDB);
+        console.log(!Number.isFinite(resDB));
+
+        if (!Number.isFinite(resDB)) {
+            console.log('cookie request declined')
             res.status(400).send(resDB);
-
-        res.cookie('nickname', `${nickname}`);
-        res.cookie('username', `${username}`);
-        res.cookie('token', `${jwt.sign({ username, nickname }, secret)}`);
-        res.status(200).send('Cookies set');
+            return;
+        }
+        else {
+            console.log('cookie`s writing')
+            res.cookie('nickname', `${nickname}`);
+            res.cookie('username', `${username}`);
+            res.cookie('token', `${jwt.sign({ username, nickname }, secret)}`);
+            res.status(200).send('Cookies set');
+        }
     }
     else {
         res.status(400).send('Occured error sending cookie');
@@ -227,9 +233,8 @@ app.get('/app/getImage', async (req, res) => {
 })
 
 app.get('/app/rooms/GetRoomsNickname', async (req, res) => {
-    console.log(req.cookies);
+    console.log('GetRoomsNickname');
     const { nickname, token } = req.cookies;
-    console.log('nickname:', nickname);
     const decodedToken = await jwt.decode(token);
 
     if (nickname === decodedToken.nickname) {

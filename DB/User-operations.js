@@ -16,22 +16,41 @@ class userDBOperations {
     //addUser( 'Mik', '1111', '@funnyBunny');
     async addUser(username, nickname, password) {
         try {
-            let MaxId;
-            const userCheck = await db.query('Select id from users where nickname = $1', [nickname]);
-            if (!userCheck.rowCount) {
-                MaxId = (await db.query('Select Max(id) from users')).rows[0].max + 1;
+            const resUser = await this.checkUser(username, nickname, password);
+            console.log('resUser: ', resUser);
+            if (resUser === -1) {
+                const MaxId = (await db.query('Select Max(id) from users')).rows[0].max + 1;
                 await db.query('INSERT INTO users VALUES ($1,$2,$3,$4)', [MaxId, username, password, nickname]);
             }
-            else {
+            else if (resUser === 0) {
                 return 'That nickname have already been occupied.((';
             }
-            console.log('MaxId: ', MaxId);
-            return MaxId;
+            return 1;
+
+
             //console.log(res);
         }
         catch (err) {
             console.log('inserting error occured ');
             console.error(err);
+        }
+    }
+
+    async checkUser(username, nickname, password) {
+        try {
+            const userExist = await db.query('Select id from users where nickname = $1', [nickname]);
+            if (!userExist.rowCount) {
+                return -1;
+            }
+            else if (userExist.rowCount) {
+                const userCheck = await db.query('Select id from users where nickname = $1 AND username = $2 and password = $3', [nickname, username, password]);
+                if (!userCheck.rowCount) { return 0; }
+            }
+            return 1;
+
+        }
+        catch (e) {
+
         }
     }
 

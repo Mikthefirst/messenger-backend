@@ -54,9 +54,9 @@ class userDBOperations {
         }
     }
 
-    async deleteUserFromRoom(room, username) {
+    async deleteUserFromRoom(nickname, roomID) {
         try {
-            const res = await db.query('DELETE FROM users WHERE username = $1 AND room = $2', [username, room]);
+            const res = await db.query('DELETE FROM user_rooms WHERE nickname = $1 AND room_id = $2', [nickname, roomID]);
             console.log('user was deleted from room');
         }
         catch (err) {
@@ -66,9 +66,9 @@ class userDBOperations {
     }
 
     //UserNum- количество пользователей из комнаты.
-    async getUsersByRoom(room, UserNum = 15) {
+    async getUsersByRoom(room_ID, UserNum = 15) {
         try {
-            const res = await db.query('SELECT username FROM users WHERE room = $1 ORDER BY id desc', [room])
+            const res = await db.query('SELECT user_id, nickname FROM user_rooms WHERE room_id = $1 ORDER BY id desc', [room_ID])
             if (res.rowCount) {
                 //console.log(res.rows);
                 return res.rows;

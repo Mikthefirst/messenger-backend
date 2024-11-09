@@ -62,7 +62,7 @@ io.on('connection', async (socket) => {
             const token = await jwt.verify(data.token, secret);
             const nickname = decodeURIComponent(data.nickname);
             const username = decodeURIComponent(data.username);
-            const room = decodeURIComponent(data.room);
+            const room_id = decodeURIComponent(data.room);
             const __createdtime__ = Date.now();
             console.log('join_room data:', data);
             console.log('token_data:', token);
@@ -70,14 +70,14 @@ io.on('connection', async (socket) => {
             if (token.nickname === nickname && token.username === username && currentTime < (token.iat + 3600)) {
 
                 //В руму можно join только если она есть
-                socket.join(room);
+                socket.join(room_id);
 
                 //Сообщение о присоединение пользователя
                 //Обновление списка пользователей
                 //Покидание комнаты пользователем
                 console.log('messages')
                 {
-                    let messages = await messageDB.getLastMessages(room, 10);
+                    let messages = await messageDB.getLastMessages(room_id, 10);
                     //пользователю
 
                     /*if (messages) {
@@ -91,19 +91,20 @@ io.on('connection', async (socket) => {
                     });*/
 
                     //пользователям
-                    const chatRoomUsers = await userDB.getUsersByRoom(room);
+                    console.log('Room ID:', room_id);
+                    const chatRoomUsers = await userDB.getUsersByRoom(room_id);
                     //console.log('Пользователи комнаты:', chatRoomUsers);
 
                     //сообщение о присоединении нового юзера.
                     console.log('Новый пользователь присоединился');//всем, кроме него
-                    socket.to(room).emit('send_user_message', {
+                    socket.to(room_id).emit('send_user_message', {
                         data: `New user joined ${username}`,
                         username: CHAT_BOT,
                         __createdtime__,
                     });
 
                     //лист юзеров отправляется всем в комнате
-                    io.to(room).emit('user_list', chatRoomUsers);
+                    io.to(room_id).emit('user_list', chatRoomUsers);
 
 
                 }
@@ -116,31 +117,43 @@ io.on('connection', async (socket) => {
     });
     socket.on('leave_room', async (data) => {
         if (data) {
-            let { room, username } = data;
-            const __createdtime__ = Date.now();
+            let { nickname, token, room } = data;
+            jwt.verify(token, secret, async (err, decoded) => {
+                if (!err && decodeURIComponent(decoded.nickname)) {
+                    const __createdtime__ = Date.now();
 
-            socket.leave(room);
-            await userDB.deleteUserFromRoom(room, username);
+                    socket.leave(room);
+                    await userDB.deleteUserFromRoom(room, nickname);
 
-            const chatRoomUsers = await userDB.getUsersByRoom(room);
-            socket.to(room).emit('user_list', chatRoomUsers);
+                    const chatRoomUsers = await userDB.getUsersByRoom(room);
+                    socket.to(room).emit('user_list', chatRoomUsers);
 
-            socket.to(room).emit('send_user_message', {
-                data: `User ${username} have leaved the room(`,
-                username: CHAT_BOT,
-                __createdtime__: __createdtime__
-            });
+                    socket.to(room).emit('send_user_message', {
+                        data: `User ${nickname} have leaved the room(`,
+                        username: CHAT_BOT,
+                        __createdtime__: __createdtime__
+                    });
+                }
+            })
         }
     })
     socket.on('send_message', async (data) => {
-        const { username, room, message, __createdtime__ } = data;
-        await messageDB.addMessage(username, message, room,);//нужно ещё будет указать время, но лень пака
+        if (data) {
+            const { nickname, room, message, __createdtime__, token } = data;
+            jwt.verify(token, secret, async (err, decoded) => {
+                if (!err && decodeURIComponent(decoded.nickname)) {
+                    await messageDB.addMessage(nickname, message, room,);//нужно ещё будет указать время, но лень пака
 
-        io.to(room).emit('send_user_message', {
-            data: message,
-            username: username,
-            __createdtime__: __createdtime__
-        })
+                    io.to(room).emit('send_user_message', {
+                        data: message,
+                        username: username,
+                        __createdtime__: __createdtime__
+                    })
+                }
+            })
+
+        }
+
     })
 })
 

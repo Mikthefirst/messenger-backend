@@ -3,15 +3,15 @@ const db = require('./dbOption');
 class messageDBOperations {
 
     //addMessage('mik', 'message payload', 'Gaming');
-    async addMessage(username, data, room, time) {
+    async addMessage(nickname, data, room, time) {
         try {
             let res;
             if (time) {
-                res = await db.query('INSERT INTO messages (username, data, room, __createdtime__)  VALUES ($1,$2,$3,$4)', [username, data, room, time]);
+                res = await db.query('INSERT INTO messages (nickname, data, room, __createdtime__)  VALUES ($1,$2,$3,$4)', [nickname, data, room, time]);
             }
             else {
-                //console.log(username, data, room);
-                res = await db.query('INSERT INTO messages (username, data, room, __createdtime__)  VALUES ($1,$2,$3,$4)', [username, data, room, 'NOW()']);
+                //console.log(nickname, data, room);
+                res = await db.query('INSERT INTO messages (nickname, data, room, __createdtime__)  VALUES ($1,$2,$3,$4)', [nickname, data, room, 'NOW()']);
             }
             //console.log(res);
             return 1;
@@ -43,7 +43,7 @@ module.exports = new messageDBOperations();
 TABLE messages
 (
     "id" INT NOT NULL PRIMARY KEY,
-    username text NOT NULL,
+    nickname text NOT NULL,
     "data" text NOT NULL,
     room text NOT NULL,
     __createdtime__ timestamp NOT NULL

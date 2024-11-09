@@ -7,13 +7,13 @@ const express = require('express'),
     app = express(),
     { Server } = require('socket.io'),
     http = require('http'),
-    path = require('node:path'),
-    multer = require('multer');
+    path = require('node:path');
 
 const messageDB = require('./DB/Message-operations');
 const userDB = require('./DB/User-operations');
 const RoomDB = require('./DB/Room-operations');
 
+const imageRouter = require('./Routers/ImageRouter');
 //vars
 
 const authServerPort = process.env.PORT;
@@ -25,7 +25,7 @@ const corsConfig = {
     methods: ['GET', 'POST'],
     credentials: true
 };
-
+/*
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, 'userImages/');
@@ -35,7 +35,7 @@ const storage = multer.diskStorage({
     }
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({ storage: storage });*/
 // 
 //Middleware
 //
@@ -80,7 +80,7 @@ io.on('connection', async (socket) => {
                     let messages = await messageDB.getLastMessages(room, 10);
                     //пользователю
 
-                    if (messages) {
+                    /*if (messages) {
                         //console.log(messages);
                         socket.emit('send_user_message', messages);
                     }
@@ -88,7 +88,7 @@ io.on('connection', async (socket) => {
                         data: `Welcome ${username}`,
                         username: CHAT_BOT,
                         __createdtime__,
-                    });
+                    });*/
 
                     //пользователям
                     const chatRoomUsers = await userDB.getUsersByRoom(room);
@@ -144,6 +144,84 @@ io.on('connection', async (socket) => {
     })
 })
 
+
+
+/*
+const fields = [
+    { name: 'avatar', maxCount: 3 },
+];
+
+app.post('/app/setImage/', upload.fields(fields), (req, res) => {
+    console.log('/app/setImage POST');
+    console.log('file:', req.files);
+    const imageNames = req.files.length === 1 ? req.files.avatar[0].originalname : [];
+    if (req.files.avatar) {
+        req.files.avatar.forEach((el, ind, arr) => {
+            if (el.mimetype === 'image/jpeg' || el.mimetype === 'image/png' || el.mimetype === 'image/jpg');
+            else { arr.splice(ind, 1) }
+            imageNames.push(arr.originalname);
+        })
+    }
+    /*
+     avatar: [
+    {
+      fieldname: 'avatar',
+      originalname: 'white_elem.jpg',
+      encoding: '7bit',
+      mimetype: 'image/jpeg',
+      destination: 'userImages/',
+      filename: 'c6454c1ab555a593635377c7ef8c3008',
+      path: 'userImages\\c6454c1ab555a593635377c7ef8c3008',
+      size: 233
+    }
+  ] 
+   
+    const { username, password } = req.query;
+    if (Array.isArray(imageNames)) {
+        //Add table for images
+        //userDB.ChangeUserProfileImage(username, password, imageNames);
+    }
+    else {
+        userDB.ChangeUserProfileImage(username, password, imageNames);
+    }
+    console.log('username:', username, '; password: ', password)
+    res.send('Sending file passed correctly');
+})
+
+
+app.get('/app/getImage', async (req, res) => {
+
+    const { username, password } = req.query;
+    const imagePath = (await userDB.GetUserProfileImage(username, password)).image;
+    console.log('/app/getImage');
+    console.log('username:', username, '; password: ', password)
+    console.log('image::', imagePath);
+    const image = path.join(__dirname, `/userImages/${imagePath}`);
+    res.sendFile(image)
+})
+*/
+
+
+
+
+app.use('/app', imageRouter);
+
+app.get('/app/rooms/GetRoomsNickname', async (req, res) => {
+    console.log('GetRoomsNickname');
+    const { nickname, token } = req.cookies;
+    const decodedToken = await jwt.decode(token);
+
+    if (nickname === decodedToken.nickname) {
+        const RoomsID = await RoomDB.getRoomsIdByUser(nickname, undefined, 10);
+        const Rooms = await RoomDB.GetRoomsByIds(RoomsID);
+        if (Rooms) {
+            res.send(JSON.stringify(Rooms));
+            return;
+        }
+    }
+    res.status(400).send('Error requesting rooms');
+})
+
 app.post('/app/getCookie', async (req, res) => {
 
     const { username, password, nickname } = req.body;
@@ -179,74 +257,9 @@ app.post('/app/getCookie', async (req, res) => {
     }
 })
 
-const fields = [
-    { name: 'avatar', maxCount: 3 },
-];
-
-app.post('/app/setImage/', upload.fields(fields), (req, res) => {
-    console.log('/app/setImage POST');
-    console.log('file:', req.files);
-    const imageNames = req.files.length === 1 ? req.files.avatar[0].originalname : [];
-    if (req.files.avatar) {
-        req.files.avatar.forEach((el, ind, arr) => {
-            if (el.mimetype === 'image/jpeg' || el.mimetype === 'image/png' || el.mimetype === 'image/jpg');
-            else { arr.splice(ind, 1) }
-            imageNames.push(arr.originalname);
-        })
-    }
-    /*
-     avatar: [
-    {
-      fieldname: 'avatar',
-      originalname: 'white_elem.jpg',
-      encoding: '7bit',
-      mimetype: 'image/jpeg',
-      destination: 'userImages/',
-      filename: 'c6454c1ab555a593635377c7ef8c3008',
-      path: 'userImages\\c6454c1ab555a593635377c7ef8c3008',
-      size: 233
-    }
-  ] 
-    */
-    const { username, password } = req.query;
-    if (Array.isArray(imageNames)) {
-        //Add table for images
-        //userDB.ChangeUserProfileImage(username, password, imageNames);
-    }
-    else {
-        userDB.ChangeUserProfileImage(username, password, imageNames);
-    }
-    console.log('username:', username, '; password: ', password)
-    res.send('Sending file passed correctly');
-})
 
 
-app.get('/app/getImage', async (req, res) => {
 
-    const { username, password } = req.query;
-    const imagePath = (await userDB.GetUserProfileImage(username, password)).image;
-    console.log('/app/getImage');
-    console.log('username:', username, '; password: ', password)
-    console.log('image::', imagePath);
-    const image = path.join(__dirname, `/userImages/${imagePath}`);
-    res.sendFile(image)
-})
-
-app.get('/app/rooms/GetRoomsNickname', async (req, res) => {
-    console.log('GetRoomsNickname');
-    const { nickname, token } = req.cookies;
-    const decodedToken = await jwt.decode(token);
-
-    if (nickname === decodedToken.nickname) {
-        const RoomsID = await RoomDB.getRoomsIdByUser(nickname, undefined, 10);
-        const Rooms = await RoomDB.GetRoomsByIds(RoomsID);
-        if (Rooms) {
-            res.send(JSON.stringify(Rooms));
-            return;
-        }
-    }
-    res.status(400).send('Error requesting rooms');
-})
 
 //servers listening
 server.listen(port, () => {

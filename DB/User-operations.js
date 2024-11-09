@@ -78,17 +78,17 @@ class userDBOperations {
         }
         return 0;
     }
-    async ChangeUserProfileImage(username, password, image) {
+    async ChangeUserProfileImage(username, nickname, image) {
         try {
-            const res = await db.query('UPDATE users SET image=$1 WHERE username = $2 AND password = $3', [image, username, password])
+            const res = await db.query('UPDATE users SET image=$1 WHERE username = $2 AND password = $3', [image, username, nickname])
         }
         catch (err) {
             console.error(err);
             return 0;
         }
     }
-    async GetUserProfileImage(username, password) {
-        const res = await db.query('Select image From users WHERE username = $1 AND password = $2', [username, password])
+    async GetUserProfileImage(username, nickname) {
+        const res = await db.query('Select image From users WHERE username = $1 AND nickname = $2', [username, nickname])
         //console.log(res.rows);
         return res.rows[0];
     }
